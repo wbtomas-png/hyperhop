@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>HyperHop Testversjon V3</title>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #1e293b;
+      --panel: rgba(15, 23, 42, 0.78);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #f87171;
+      --coin: #facc15;
+      --ground: #334155;
+      --gold: #fbbf24;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      touch-action: none;
+    }
+
+    .app {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .shell {
+      position: relative;
+      width: min(100vw, 440px);
+      height: min(100vh, 860px);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: #0b1220;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #0f172a 0%, #132238 50%, #1b2c46 100%);
+    }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .chip {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 10px 12px;
+      min-width: 96px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .chip .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .chip .value {
+      margin-top: 2px;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .bottom-panel {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .message {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 10px 14px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text);
+      max-width: 92%;
+    }
+
+    .small-fab {
+      pointer-events: auto;
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.82);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.55);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+    }
+
+    .card {
+      width: min(100%, 360px);
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+      text-align: center;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .controls {
+      margin-top: 18px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .controls b { color: white; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      pointer-events: auto;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+
+    .primary {
+      background: var(--accent);
+      color: #082032;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .hidden { display: none; }
+
+    .leaderboard {
+      margin-top: 16px;
+      text-align: left;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 12px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .leaderboard-title {
+      margin: 0 0 8px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 70px 52px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 6px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .lb-row:nth-child(even) {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .lb-rank {
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .lb-name {
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-score, .lb-coins {
+      text-align: right;
+      color: #e5e7eb;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .name-form {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .name-form label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .name-form input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .name-form input:focus {
+      border-color: rgba(56,189,248,0.8);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <canvas id="game" width="440" height="860"></canvas>
+
+      <div class="hud">
+        <div class="topbar">
+          <div class="chip">
+            <div class="label">Score</div>
+            <div class="value" id="scoreValue">0</div>
+          </div>
+          <div class="chip">
+            <div class="label">Coins</div>
+            <div class="value" id="coinValue">0</div>
+          </div>
+          <div class="chip">
+            <div class="label">Mode</div>
+            <div class="value" id="modeValue">Run</div>
+          </div>
+        </div>
+
+        <div class="bottom-panel">
+          <button class="small-fab" id="musicBtn" aria-label="Toggle music">Musikk: På</button>
+          <button class="small-fab" id="sfxBtn" aria-label="Toggle sound effects">Lyder: På</button>
+          <button class="small-fab" id="hallBtn" aria-label="Open wall of fame">Wall of Fame</button>
+          <div class="message" id="messageBox">Trykk for å hoppe. Dobbelttrykk i lufta gir dobbelhopp.</div>
+        </div>
+      </div>
+
+      <div class="overlay" id="startOverlay">
+        <div class="card">
+          <h1 class="title">HyperHop v3</h1>
+          <p class="subtitle">Auto-restart med countdown ved vanlig død. High score lagres kun når du slår din personlige rekord.</p>
+          <div class="controls">
+            <div><b>Mobil:</b> trykk for hopp. Når flymodus er aktiv, dra fingeren opp og ned.</div>
+            <div><b>PC:</b> mellomrom eller museklikk for hopp. I flymodus bruker du mus opp/ned eller pil opp/ned.</div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="startBtn">Start test</button>
+            <button class="secondary" id="openHallFromMenuBtn">Se Wall of Fame</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="gameOverOverlay">
+        <div class="card">
+          <h2 class="title" id="countdownTitle">3</h2>
+          <p class="subtitle" id="gameOverText">Du døde. Ny runde starter straks.</p>
+
+          <div class="name-form hidden" id="nameFormWrap">
+            <label for="playerNameInput">Ny personlig rekord. Skriv inn navn til Wall of Fame.</label>
+            <input id="playerNameInput" maxlength="14" placeholder="F.eks. STARK" />
+            <div class="actions" style="margin-top: 8px; justify-content: flex-start;">
+              <button class="primary" id="saveScoreBtn">Lagre score</button>
+            </div>
+          </div>
+
+          <div class="actions hidden" id="gameOverActions">
+            <button class="secondary" id="openHallAfterGameBtn">Wall of Fame</button>
+            <button class="secondary" id="menuBtn">Til meny</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="hallOverlay">
+        <div class="card">
+          <h2 class="title">Wall of Fame</h2>
+          <p class="subtitle">Lokale legender på denne enheten. Nakne tall og ren stolthet.</p>
+
+          <div class="leaderboard" id="leaderboardList">
+            <p class="leaderboard-title">Ingen scores ennå</p>
+          </div>
+
+          <div class="actions">
+            <button class="secondary" id="clearHallBtn">Tøm liste</button>
+            <button class="primary" id="closeHallBtn">Lukk</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreValue = document.getElementById("scoreValue");
+    const coinValue = document.getElementById("coinValue");
+    const modeValue = document.getElementById("modeValue");
+    const messageBox = document.getElementById("messageBox");
+
+    const startOverlay = document.getElementById("startOverlay");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const hallOverlay = document.getElementById("hallOverlay");
+    const countdownTitle = document.getElementById("countdownTitle");
+    const gameOverText = document.getElementById("gameOverText");
+    const startBtn = document.getElementById("startBtn");
+    const openHallFromMenuBtn = document.getElementById("openHallFromMenuBtn");
+    const menuBtn = document.getElementById("menuBtn");
+    const openHallAfterGameBtn = document.getElementById("openHallAfterGameBtn");
+    const closeHallBtn = document.getElementById("closeHallBtn");
+    const clearHallBtn = document.getElementById("clearHallBtn");
+    const hallBtn = document.getElementById("hallBtn");
+    const musicBtn = document.getElementById("musicBtn");
+    const sfxBtn = document.getElementById("sfxBtn");
+    const nameFormWrap = document.getElementById("nameFormWrap");
+    const playerNameInput = document.getElementById("playerNameInput");
+    const saveScoreBtn = document.getElementById("saveScoreBtn");
+    const leaderboardList = document.getElementById("leaderboardList");
+    const gameOverActions = document.getElementById("gameOverActions");
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const GROUND_Y = H - 120;
+    const CEILING_H = 74;
+    const STORAGE_KEY = "hyperhop_v3_wall_of_fame";
+    const PERSONAL_BEST_KEY = "hyperhop_v3_personal_best";
+
+    const state = {
+      phase: "menu", // menu, playing, countdown, awaiting_save
+      score: 0,
+      coins: 0,
+      bestScore: 0,
+      personalBest: Number(localStorage.getItem(PERSONAL_BEST_KEY) || 0),
+      worldSpeed: 360,
+      baseWorldSpeed: 360,
+      distance: 0,
+      time: 0,
+      pointerActive: false,
+      pointerY: H * 0.5,
+      modeMessageUntil: 0,
+      countdown: 0,
+      countdownAccumulator: 0,
+      pendingHallEntry: null,
+      hallWasOpenedFromDeath: false,
+    };
+
+    const settings = {
+      musicOn: true,
+      sfxOn: true,
+    };
+
+    const player = {
+      x: 110,
+      y: GROUND_Y - 62,
+      w: 46,
+      h: 62,
+      vy: 0,
+      gravity: 2100,
+      jumpForce: -760,
+      jumpsUsed: 0,
+      maxJumps: 2,
+      grounded: true,
+      isFlying: false,
+      flyTimer: 0,
+      flySpeed: 520,
+      flashTimer: 0,
+    };
+
+    const obstacles = [];
+    const coins = [];
+    const powerUps = [];
+    const particles = [];
+
+    let obstacleSpawnTimer = 0;
+    let coinSpawnTimer = 0;
+    let powerSpawnTimer = 4;
+    let lastTimestamp = 0;
+
+    const PowerType = {
+      SPEED_UP: "speed_up",
+      SLOW_DOWN: "slow_down",
+      MAGNET: "magnet",
+      FLY: "fly",
+    };
+
+    const effects = {
+      speedUp: 0,
+      slowDown: 0,
+      magnet: 0,
+    };
+
+    const audio = {
+      ctx: null,
+      musicGain: null,
+      sfxGain: null,
+      musicNodes: [],
+      initialized: false,
+    };
+
+    function ensureAudio() {
+      if (audio.initialized) return;
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return;
+      audio.ctx = new AudioContextCtor();
+      audio.musicGain = audio.ctx.createGain();
+      audio.sfxGain = audio.ctx.createGain();
+      audio.musicGain.gain.value = settings.musicOn ? 0.055 : 0;
+      audio.sfxGain.gain.value = settings.sfxOn ? 0.18 : 0;
+      audio.musicGain.connect(audio.ctx.destination);
+      audio.sfxGain.connect(audio.ctx.destination);
+      audio.initialized = true;
+      startMusicLoop();
+    }
+
+    function startMusicLoop() {
+      if (!audio.ctx || audio.musicNodes.length) return;
+      const now = audio.ctx.currentTime + 0.08;
+      const beat = 0.36;
+      const sequence = [220, 277.18, 329.63, 277.18, 246.94, 293.66, 369.99, 293.66];
+      const bass = [110, 110, 123.47, 98, 110, 110, 82.41, 98];
+      sequence.forEach((freq, i) => scheduleMusicTone(now + i * beat, beat * 0.9, freq, "triangle", 0.06));
+      bass.forEach((freq, i) => scheduleMusicTone(now + i * beat, beat * 0.72, freq, "sine", 0.045));
+      setTimeout(() => {
+        audio.musicNodes = [];
+        if (audio.initialized) startMusicLoop();
+      }, beat * sequence.length * 1000);
+    }
+
+    function scheduleMusicTone(start, dur, freq, type, vol) {
+      const osc = audio.ctx.createOscillator();
+      const gain = audio.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      osc.connect(gain);
+      gain.connect(audio.musicGain);
+      osc.start(start);
+      osc.stop(start + dur + 0.03);
+      audio.musicNodes.push(osc);
+    }
+
+    function sfxTone(freq, duration, type = "square", volume = 0.06, slide = 0) {
+      if (!audio.ctx || !settings.sfxOn) return;
+      const now = audio.ctx.currentTime;
+      const osc = audio.ctx.createOscillator();
+      const gain = audio.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (slide !== 0) osc.frequency.linearRampToValueAtTime(freq + slide, now + duration);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(gain);
+      gain.connect(audio.sfxGain);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function playJumpSound(doubleJump = false) { sfxTone(doubleJump ? 640 : 420, 0.12, "square", 0.05, doubleJump ? 120 : 80); }
+    function playCoinSound() { sfxTone(880, 0.07, "triangle", 0.05, 180); }
+    function playPowerUpSound() { sfxTone(520, 0.08, "sawtooth", 0.04, 120); setTimeout(() => sfxTone(760, 0.09, "triangle", 0.04, 140), 55); }
+    function playHitSound() { sfxTone(220, 0.2, "sawtooth", 0.07, -120); }
+    function playUiSound() { sfxTone(520, 0.05, "triangle", 0.03, 40); }
+    function playCountdownBeep(n) { sfxTone(n === 1 ? 900 : 700, 0.08, "square", 0.04, 20); }
+
+    function toggleMusic() {
+      ensureAudio();
+      settings.musicOn = !settings.musicOn;
+      if (audio.musicGain) audio.musicGain.gain.value = settings.musicOn ? 0.055 : 0;
+      musicBtn.textContent = `Musikk: ${settings.musicOn ? "På" : "Av"}`;
+      playUiSound();
+    }
+
+    function toggleSfx() {
+      ensureAudio();
+      settings.sfxOn = !settings.sfxOn;
+      if (audio.sfxGain) audio.sfxGain.gain.value = settings.sfxOn ? 0.18 : 0;
+      sfxBtn.textContent = `Lyder: ${settings.sfxOn ? "På" : "Av"}`;
+      playUiSound();
+    }
+
+    function getLeaderboard() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveLeaderboard(entries) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 10)));
+    }
+
+    function addLeaderboardEntry(name, score, runCoins) {
+      const clean = (name || "ANON").trim().slice(0, 14).toUpperCase() || "ANON";
+      const entries = getLeaderboard();
+      entries.push({ name: clean, score, coins: runCoins, date: new Date().toISOString() });
+      entries.sort((a, b) => b.score - a.score || b.coins - a.coins);
+      saveLeaderboard(entries);
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const entries = getLeaderboard();
+      if (!entries.length) {
+        leaderboardList.innerHTML = '<p class="leaderboard-title">Ingen scores ennå</p>';
+        return;
+      }
+      leaderboardList.innerHTML = '<p class="leaderboard-title">All-time legends</p>' + entries.map((entry, i) => `
+        <div class="lb-row">
+          <div class="lb-rank">#${i + 1}</div>
+          <div class="lb-name">${escapeHtml(entry.name)}</div>
+          <div class="lb-score">${entry.score}</div>
+          <div class="lb-coins">${entry.coins}¢</div>
+        </div>
+      `).join("");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function openHall(fromDeath = false) {
+      renderLeaderboard();
+      hallOverlay.classList.remove("hidden");
+      state.hallWasOpenedFromDeath = fromDeath;
+      playUiSound();
+    }
+
+    function closeHall() {
+      hallOverlay.classList.add("hidden");
+      playUiSound();
+    }
+
+    function initializeRun() {
+      state.score = 0;
+      state.coins = 0;
+      state.worldSpeed = state.baseWorldSpeed;
+      state.distance = 0;
+      state.time = 0;
+      state.pointerActive = false;
+      state.pointerY = H * 0.5;
+      state.modeMessageUntil = 0;
+
+      player.x = 110;
+      player.y = GROUND_Y - player.h;
+      player.vy = 0;
+      player.jumpsUsed = 0;
+      player.grounded = true;
+      player.isFlying = false;
+      player.flyTimer = 0;
+      player.flashTimer = 0;
+
+      obstacles.length = 0;
+      coins.length = 0;
+      powerUps.length = 0;
+      particles.length = 0;
+
+      effects.speedUp = 0;
+      effects.slowDown = 0;
+      effects.magnet = 0;
+
+      obstacleSpawnTimer = 1.05;
+      coinSpawnTimer = 0.5;
+      powerSpawnTimer = 6;
+
+      updateHud();
+    }
+
+    function startNewRun() {
+      ensureAudio();
+      if (audio.ctx?.state === "suspended") audio.ctx.resume();
+
+      initializeRun();
+      state.phase = "playing";
+      state.pendingHallEntry = null;
+
+      playerNameInput.value = "";
+      nameFormWrap.classList.add("hidden");
+      gameOverActions.classList.add("hidden");
+      hallOverlay.classList.add("hidden");
+      gameOverOverlay.classList.add("hidden");
+      startOverlay.classList.add("hidden");
+
+      messageBox.textContent = "Trykk for å hoppe. Flymodus kommer via power-up.";
+      playUiSound();
+    }
+
+    function backToMenu() {
+      state.phase = "menu";
+      state.pendingHallEntry = null;
+
+      playerNameInput.value = "";
+      nameFormWrap.classList.add("hidden");
+      gameOverActions.classList.add("hidden");
+      gameOverOverlay.classList.add("hidden");
+      hallOverlay.classList.add("hidden");
+      startOverlay.classList.remove("hidden");
+
+      messageBox.textContent = "Trykk for å hoppe. Dobbelttrykk i lufta gir dobbelhopp.";
+      updateHud();
+      draw();
+      playUiSound();
+    }
+
+    function startCountdown() {
+      state.phase = "countdown";
+      state.countdown = 3;
+      state.countdownAccumulator = 0;
+
+      countdownTitle.textContent = "3";
+      gameOverText.textContent = "Du døde. Ny runde starter straks.";
+      nameFormWrap.classList.add("hidden");
+      gameOverActions.classList.add("hidden");
+      gameOverOverlay.classList.remove("hidden");
+
+      playCountdownBeep(3);
+    }
+
+    function showHighscoreSaveScreen(finalScore) {
+      state.phase = "awaiting_save";
+      countdownTitle.textContent = "High Score!";
+      gameOverText.textContent = `Ny personlig rekord! Score: ${finalScore} · Coins: ${state.coins}`;
+      nameFormWrap.classList.remove("hidden");
+      gameOverActions.classList.remove("hidden");
+      gameOverOverlay.classList.remove("hidden");
+
+      setTimeout(() => playerNameInput.focus(), 30);
+    }
+
+    function updateHud() {
+      scoreValue.textContent = Math.floor(state.score);
+      coinValue.textContent = state.coins;
+      modeValue.textContent = player.isFlying ? "Fly" : "Run";
+    }
+
+    function jump() {
+      if (state.phase !== "playing" || player.isFlying) return;
+      if (player.jumpsUsed >= player.maxJumps) return;
+
+      player.vy = player.jumpForce;
+      player.grounded = false;
+      player.jumpsUsed += 1;
+
+      addDust(player.x + 12, player.y + player.h - 8, 8);
+      playJumpSound(player.jumpsUsed === 2);
+
+      if (player.jumpsUsed === 2) flashMessage("Dobbelhopp");
+    }
+
+    function flashMessage(text) {
+      messageBox.textContent = text;
+      state.modeMessageUntil = state.time + 1.5;
+    }
+
+    function spawnObstacle() {
+      const t = Math.random();
+
+      if (player.isFlying) {
+        const top = Math.random() < 0.5;
+        const h = 80 + Math.random() * 80;
+        obstacles.push({
+          x: W + 20,
+          y: top ? CEILING_H : GROUND_Y - h,
+          w: 38 + Math.random() * 28,
+          h,
+          color: top ? "#60a5fa" : "#f97316",
+          top
+        });
+        return;
+      }
+
+      if (t < 0.6) {
+        const h = 56 + Math.random() * 50;
+        obstacles.push({ x: W + 20, y: GROUND_Y - h, w: 40 + Math.random() * 24, h, color: "#f97316", top: false });
+      } else {
+        const h = 36 + Math.random() * 24;
+        obstacles.push({ x: W + 20, y: GROUND_Y - h, w: 78, h, color: "#fb7185", top: false });
+      }
+    }
+
+    function spawnCoinPattern() {
+      const count = 3 + Math.floor(Math.random() * 4);
+      const spacing = 44;
+
+      if (player.isFlying) {
+        const centerY = 180 + Math.random() * (GROUND_Y - 280);
+        for (let i = 0; i < count; i++) {
+          coins.push({ x: W + 30 + i * spacing, y: centerY + Math.sin(i * 0.65) * 26, r: 11 });
+        }
+        return;
+      }
+
+      const heightMode = Math.random();
+      for (let i = 0; i < count; i++) {
+        let y = GROUND_Y - 34;
+        if (heightMode > 0.45 && heightMode < 0.8) y -= 95;
+        if (heightMode >= 0.8) y -= 170;
+        coins.push({ x: W + 30 + i * spacing, y, r: 11 });
+      }
+    }
+
+    function spawnPowerUp() {
+      const types = [PowerType.SPEED_UP, PowerType.SLOW_DOWN, PowerType.MAGNET, PowerType.FLY];
+      const type = types[Math.floor(Math.random() * types.length)];
+
+      let y;
+      if (player.isFlying) {
+        y = 180 + Math.random() * (GROUND_Y - 260);
+      } else {
+        const band = Math.random();
+        y = GROUND_Y - 62;
+        if (band > 0.4) y -= 120;
+        if (band > 0.8) y -= 200;
+      }
+
+      powerUps.push({ x: W + 20, y, w: 40, h: 40, type });
+    }
+
+    function activatePowerUp(type) {
+      switch (type) {
+        case PowerType.SPEED_UP:
+          effects.speedUp = 5;
+          effects.slowDown = 0;
+          flashMessage("Power-up: Fart opp");
+          break;
+        case PowerType.SLOW_DOWN:
+          effects.slowDown = 5;
+          effects.speedUp = 0;
+          flashMessage("Power-up: Fart ned");
+          break;
+        case PowerType.MAGNET:
+          effects.magnet = 6;
+          flashMessage("Power-up: Coin magnet");
+          break;
+        case PowerType.FLY:
+          player.isFlying = true;
+          player.flyTimer = 8;
+          player.vy = 0;
+          player.jumpsUsed = 0;
+          flashMessage("Power-up: Flymodus");
+          break;
+      }
+      playPowerUpSound();
+    }
+
+    function killPlayer() {
+      if (state.phase !== "playing") return;
+
+      const finalScore = Math.floor(state.score);
+      state.bestScore = Math.max(state.bestScore, finalScore);
+      playHitSound();
+
+      if (finalScore > state.personalBest) {
+        state.personalBest = finalScore;
+        localStorage.setItem(PERSONAL_BEST_KEY, String(finalScore));
+        state.pendingHallEntry = { score: finalScore, coins: state.coins };
+        showHighscoreSaveScreen(finalScore);
+      } else {
+        state.pendingHallEntry = null;
+        startCountdown();
+      }
+    }
+
+    function savePendingScore() {
+      if (!state.pendingHallEntry) return;
+
+      addLeaderboardEntry(
+        playerNameInput.value,
+        state.pendingHallEntry.score,
+        state.pendingHallEntry.coins
+      );
+
+      state.pendingHallEntry = null;
+      nameFormWrap.classList.add("hidden");
+      gameOverActions.classList.add("hidden");
+      gameOverText.textContent = "Score lagret. Ny runde starter straks.";
+      countdownTitle.textContent = "3";
+
+      startCountdown();
+      playUiSound();
+    }
+
+    function rectsIntersect(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function circleRectIntersect(c, r) {
+      const cx = Math.max(r.x, Math.min(c.x, r.x + r.w));
+      const cy = Math.max(r.y, Math.min(c.y, r.y + r.h));
+      const dx = c.x - cx;
+      const dy = c.y - cy;
+      return dx * dx + dy * dy < c.r * c.r;
+    }
+
+    function addDust(x, y, amount = 6, color = "rgba(255,255,255,0.6)") {
+      for (let i = 0; i < amount; i++) {
+        particles.push({
+          x,
+          y,
+          vx: -60 + Math.random() * 120,
+          vy: -50 + Math.random() * 100,
+          life: 0.4 + Math.random() * 0.35,
+          maxLife: 0.7,
+          size: 2 + Math.random() * 4,
+          color
+        });
+      }
+    }
+
+    function updatePlaying(dt) {
+      state.time += dt;
+      state.distance += state.worldSpeed * dt;
+      state.score = state.distance / 10;
+
+      if (state.modeMessageUntil && state.time > state.modeMessageUntil) {
+        messageBox.textContent = player.isFlying
+          ? "Flymodus aktiv: dra opp og ned."
+          : "Trykk for hopp. Unngå hindrene og samle coins.";
+        state.modeMessageUntil = 0;
+      }
+
+      effects.speedUp = Math.max(0, effects.speedUp - dt);
+      effects.slowDown = Math.max(0, effects.slowDown - dt);
+      effects.magnet = Math.max(0, effects.magnet - dt);
+
+      const difficultyBonus = Math.min(140, state.time * 3.8);
+      state.worldSpeed = state.baseWorldSpeed + difficultyBonus;
+      if (effects.speedUp > 0) state.worldSpeed += 120;
+      if (effects.slowDown > 0) state.worldSpeed -= 120;
+      state.worldSpeed = Math.max(220, state.worldSpeed);
+
+      if (player.flashTimer > 0) player.flashTimer -= dt;
+
+      if (player.isFlying) {
+        player.flyTimer -= dt;
+
+        if (state.pointerActive) {
+          const targetY = Math.max(
+            CEILING_H + 24,
+            Math.min(state.pointerY - player.h / 2, GROUND_Y - player.h - 18)
+          );
+          const diff = targetY - player.y;
+          const step = player.flySpeed * dt;
+          player.y += Math.abs(diff) <= step ? diff : Math.sign(diff) * step;
+        } else {
+          if (keys.ArrowUp) player.y -= player.flySpeed * dt;
+          if (keys.ArrowDown) player.y += player.flySpeed * dt;
+          player.y = Math.max(CEILING_H + 24, Math.min(player.y, GROUND_Y - player.h - 18));
+        }
+
+        if (player.flyTimer <= 0) {
+          player.isFlying = false;
+          player.y = Math.min(player.y, GROUND_Y - player.h);
+          player.vy = 0;
+          flashMessage("Flymodus slutt");
+        }
+      } else {
+        player.vy += player.gravity * dt;
+        player.y += player.vy * dt;
+
+        if (player.y + player.h >= GROUND_Y) {
+          if (!player.grounded) addDust(player.x + player.w * 0.5, GROUND_Y - 4, 9);
+          player.y = GROUND_Y - player.h;
+          player.vy = 0;
+          player.grounded = true;
+          player.jumpsUsed = 0;
+        } else {
+          player.grounded = false;
+        }
+      }
+
+      obstacleSpawnTimer -= dt;
+      coinSpawnTimer -= dt;
+      powerSpawnTimer -= dt;
+
+      if (obstacleSpawnTimer <= 0) {
+        spawnObstacle();
+        obstacleSpawnTimer = player.isFlying
+          ? 0.7 + Math.random() * 0.5
+          : Math.max(0.75, 1.25 - state.time * 0.01) + Math.random() * 0.45;
+      }
+
+      if (coinSpawnTimer <= 0) {
+        spawnCoinPattern();
+        coinSpawnTimer = player.isFlying
+          ? 1.5 + Math.random() * 0.7
+          : 1.9 + Math.random() * 0.8;
+      }
+
+      if (powerSpawnTimer <= 0) {
+        spawnPowerUp();
+        powerSpawnTimer = 8 + Math.random() * 7;
+      }
+
+      const playerRect = { x: player.x + 4, y: player.y + 4, w: player.w - 8, h: player.h - 6 };
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        o.x -= state.worldSpeed * dt;
+        if (o.x + o.w < -20) {
+          obstacles.splice(i, 1);
+          continue;
+        }
+        if (rectsIntersect(playerRect, o)) killPlayer();
+      }
+
+      for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i];
+        c.x -= state.worldSpeed * dt;
+
+        if (effects.magnet > 0) {
+          const dx = (player.x + player.w / 2) - c.x;
+          const dy = (player.y + player.h / 2) - c.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 180) {
+            c.x += (dx / Math.max(1, dist)) * 420 * dt;
+            c.y += (dy / Math.max(1, dist)) * 420 * dt;
+          }
+        }
+
+        if (c.x + c.r < -20) {
+          coins.splice(i, 1);
+          continue;
+        }
+
+        if (circleRectIntersect(c, playerRect)) {
+          state.coins += 1;
+          addDust(c.x, c.y, 6, "rgba(250,204,21,0.9)");
+          playCoinSound();
+          coins.splice(i, 1);
+        }
+      }
+
+      for (let i = powerUps.length - 1; i >= 0; i--) {
+        const p = powerUps[i];
+        p.x -= state.worldSpeed * dt;
+
+        if (p.x + p.w < -20) {
+          powerUps.splice(i, 1);
+          continue;
+        }
+
+        if (rectsIntersect(playerRect, p)) {
+          addDust(p.x + p.w / 2, p.y + p.h / 2, 9, "rgba(56,189,248,0.9)");
+          activatePowerUp(p.type);
+          powerUps.splice(i, 1);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      updateHud();
+    }
+
+    function updateCountdown(dt) {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      if (!hallOverlay.classList.contains("hidden")) return;
+
+      state.countdownAccumulator += dt;
+
+      if (state.countdownAccumulator >= 1) {
+        state.countdownAccumulator -= 1;
+        state.countdown -= 1;
+
+        if (state.countdown > 0) {
+          countdownTitle.textContent = String(state.countdown);
+          playCountdownBeep(state.countdown);
+        } else {
+          countdownTitle.textContent = "GO";
+          playUiSound();
+          setTimeout(() => {
+            if (state.phase === "countdown" && hallOverlay.classList.contains("hidden")) {
+              startNewRun();
+            }
+          }, 180);
+        }
+      }
+    }
+
+    function update(dt) {
+      if (state.phase === "playing") updatePlaying(dt);
+      else if (state.phase === "countdown") updateCountdown(dt);
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = "#10213a";
+      ctx.fillRect(0, 0, W, H);
+
+      const offset = -(state.distance * 0.08) % W;
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+
+      for (let i = -1; i < 3; i++) {
+        const x = offset + i * W;
+        ctx.beginPath();
+        ctx.moveTo(x, H * 0.58);
+        ctx.lineTo(x + 80, H * 0.38);
+        ctx.lineTo(x + 180, H * 0.55);
+        ctx.lineTo(x + 300, H * 0.34);
+        ctx.lineTo(x + W, H * 0.6);
+        ctx.lineTo(x + W, H);
+        ctx.lineTo(x, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      if (player.isFlying) {
+        ctx.fillStyle = "rgba(96,165,250,0.25)";
+        ctx.fillRect(0, 0, W, CEILING_H);
+      }
+    }
+
+    function drawGround() {
+      const offset = -(state.distance * 0.35) % 48;
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+      ctx.fillStyle = "#475569";
+      for (let x = offset; x < W + 48; x += 48) {
+        ctx.fillRect(x, GROUND_Y + 12, 28, 8);
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillRect(0, GROUND_Y, W, 6);
+    }
+
+    function drawPlayer() {
+      const blink = player.flashTimer > 0 && Math.floor(player.flashTimer * 18) % 2 === 0;
+      if (blink) return;
+
+      const x = player.x;
+      const y = player.y;
+
+      ctx.save();
+
+      if (player.isFlying) {
+        ctx.shadowColor = "rgba(56,189,248,0.7)";
+        ctx.shadowBlur = 18;
+      }
+
+      ctx.fillStyle = player.isFlying ? "#38bdf8" : "#f8fafc";
+      roundRect(ctx, x, y, player.w, player.h, 14, true, false);
+
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(x + 28, y + 18, 8, 8);
+
+      ctx.fillStyle = player.isFlying ? "#7dd3fc" : "#22c55e";
+      ctx.fillRect(x + 6, y + player.h - 14, player.w - 12, 8);
+
+      if (player.isFlying) {
+        ctx.strokeStyle = "rgba(125,211,252,0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y + player.h * 0.4); ctx.lineTo(x - 22, y + player.h * 0.25);
+        ctx.moveTo(x - 10, y + player.h * 0.6); ctx.lineTo(x - 22, y + player.h * 0.75);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawObstacles() {
+      for (const o of obstacles) {
+        ctx.fillStyle = o.color;
+        roundRect(ctx, o.x, o.y, o.w, o.h, 8, true, false);
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.fillRect(o.x + 6, o.y + 6, Math.max(8, o.w - 12), 6);
+      }
+    }
+
+    function drawCoins() {
+      for (const c of coins) {
+        ctx.fillStyle = "#facc15";
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.beginPath();
+        ctx.arc(c.x - 3, c.y - 3, c.r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPowerIcon(p) {
+      const cx = p.x + p.w / 2;
+      const cy = p.y + p.h / 2;
+
+      ctx.save();
+      ctx.shadowColor = "rgba(255,255,255,0.35)";
+      ctx.shadowBlur = 12;
+
+      if (p.type === PowerType.SPEED_UP) {
+        ctx.fillStyle = "white";
+        for (let k = 0; k < 3; k++) {
+          const ox = -8 + k * 7;
+          ctx.beginPath();
+          ctx.moveTo(cx - 8 + ox, cy - 8);
+          ctx.lineTo(cx + ox, cy);
+          ctx.lineTo(cx - 8 + ox, cy + 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (p.type === PowerType.SLOW_DOWN) {
+        ctx.fillStyle = "white";
+        for (let k = 0; k < 3; k++) {
+          const ox = -8 + k * 7;
+          ctx.beginPath();
+          ctx.moveTo(cx + 8 - ox, cy - 8);
+          ctx.lineTo(cx - ox, cy);
+          ctx.lineTo(cx + 8 - ox, cy + 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (p.type === PowerType.MAGNET) {
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 1, 10, Math.PI * 0.15, Math.PI * 0.85);
+        ctx.stroke();
+        ctx.fillStyle = "white";
+        ctx.fillRect(cx - 11, cy + 5, 6, 9);
+        ctx.fillRect(cx + 5, cy + 5, 6, 9);
+      } else if (p.type === PowerType.FLY) {
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy - 12);
+        ctx.lineTo(cx + 9, cy - 1);
+        ctx.lineTo(cx + 2, cy - 1);
+        ctx.lineTo(cx + 10, cy + 12);
+        ctx.lineTo(cx - 7, cy + 1);
+        ctx.lineTo(cx, cy + 1);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawPowerUps() {
+      for (const p of powerUps) {
+        const colors = {
+          [PowerType.SPEED_UP]: ["#ef4444", "#fb7185"],
+          [PowerType.SLOW_DOWN]: ["#22c55e", "#4ade80"],
+          [PowerType.MAGNET]: ["#a855f7", "#d946ef"],
+          [PowerType.FLY]: ["#38bdf8", "#60a5fa"],
+        };
+
+        const [c1, c2] = colors[p.type] || ["#ffffff", "#dddddd"];
+        const grad = ctx.createLinearGradient(p.x, p.y, p.x + p.w, p.y + p.h);
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+
+        ctx.save();
+        ctx.shadowColor = c2;
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = grad;
+        roundRect(ctx, p.x, p.y, p.w, p.h, 12, true, false);
+
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        roundRect(ctx, p.x + 3, p.y + 3, p.w - 6, (p.h - 6) * 0.45, 10, true, false);
+
+        drawPowerIcon(p);
+        ctx.restore();
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+      drawBackground();
+      drawGround();
+      drawCoins();
+      drawPowerUps();
+      drawObstacles();
+      drawPlayer();
+      drawParticles();
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function loop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    const keys = { ArrowUp: false, ArrowDown: false };
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        if (player.isFlying && state.phase === "playing") {
+          keys.ArrowUp = true;
+        } else if (state.phase === "playing") {
+          jump();
+        }
+        e.preventDefault();
+      }
+
+      if (e.code === "ArrowDown") {
+        keys.ArrowDown = true;
+        e.preventDefault();
+      }
+
+      if (e.code === "Enter" && state.phase === "awaiting_save" && !nameFormWrap.classList.contains("hidden")) {
+        savePendingScore();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.code === "ArrowUp") keys.ArrowUp = false;
+      if (e.code === "ArrowDown") keys.ArrowDown = false;
+    });
+
+    function setPointer(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      state.pointerY = ((clientY - rect.top) / rect.height) * H;
+    }
+
+    function pointerDown(e) {
+      ensureAudio();
+      if (audio.ctx?.state === "suspended") audio.ctx.resume();
+
+      if (state.phase !== "playing" || !hallOverlay.classList.contains("hidden")) return;
+
+      state.pointerActive = true;
+      setPointer(e);
+
+      if (!player.isFlying) jump();
+      e.preventDefault();
+    }
+
+    function pointerMove(e) {
+      if (state.phase !== "playing") return;
+      if (!state.pointerActive) return;
+      setPointer(e);
+      e.preventDefault();
+    }
+
+    function pointerUp(e) {
+      state.pointerActive = false;
+      if (e) e.preventDefault();
+    }
+
+    canvas.addEventListener("mousedown", pointerDown);
+    canvas.addEventListener("mousemove", pointerMove);
+    window.addEventListener("mouseup", pointerUp);
+    canvas.addEventListener("touchstart", pointerDown, { passive: false });
+    canvas.addEventListener("touchmove", pointerMove, { passive: false });
+    window.addEventListener("touchend", pointerUp, { passive: false });
+
+    startBtn.addEventListener("click", startNewRun);
+    menuBtn.addEventListener("click", backToMenu);
+    openHallAfterGameBtn.addEventListener("click", () => openHall(true));
+    openHallFromMenuBtn.addEventListener("click", () => openHall(false));
+    hallBtn.addEventListener("click", () => openHall(false));
+    closeHallBtn.addEventListener("click", closeHall);
+
+    clearHallBtn.addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      renderLeaderboard();
+      playUiSound();
+    });
+
+    musicBtn.addEventListener("click", toggleMusic);
+    sfxBtn.addEventListener("click", toggleSfx);
+    saveScoreBtn.addEventListener("click", savePendingScore);
+
+    renderLeaderboard();
+    updateHud();
+    draw();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
