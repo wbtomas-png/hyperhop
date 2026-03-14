@@ -211,6 +211,28 @@
       color: white;
     }
 
+    .stats-box {
+      margin-top: 14px;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .stats-box .stat-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .stats-box .stat-line strong {
+      color: white;
+      font-variant-numeric: tabular-nums;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -456,14 +478,19 @@
       <div class="overlay hidden" id="hallOverlay">
         <div class="card">
           <h2 class="title">Wall of Fame</h2>
-          <p class="subtitle">Lokale legender på denne enheten. Nakne tall, null diplomati.</p>
+          <p class="subtitle">Global toppliste + live statistikk.</p>
+
+          <div class="stats-box" id="statsBox">
+            <div class="stat-line"><span>Spiller nå</span><strong id="playingNowValue">—</strong></div>
+            <div class="stat-line"><span>Har spilt totalt</span><strong id="totalPlayersValue">—</strong></div>
+            <div class="stat-line"><span>Fullførte runder</span><strong id="totalRunsValue">—</strong></div>
+          </div>
 
           <div class="leaderboard" id="leaderboardList">
-            <p class="leaderboard-title">Ingen scores ennå</p>
+            <p class="leaderboard-title">Laster global toppliste…</p>
           </div>
 
           <div class="actions">
-            <button class="secondary" id="clearHallBtn" type="button">Tøm liste</button>
             <button class="primary" id="closeHallBtn" type="button">Lukk</button>
           </div>
         </div>
@@ -471,7 +498,26 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    const SUPABASE_ENABLED =
+      SUPABASE_URL &&
+      SUPABASE_ANON_KEY &&
+      SUPABASE_URL !== "YOUR_SUPABASE_URL" &&
+      SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+
+    const supabase = SUPABASE_ENABLED
+      ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    const PLAYER_ID_KEY = "hyperhop_global_player_id_v1";
+    const BROWSER_SESSION_KEY = "hyperhop_browser_session_id_v1";
+    const PERSONAL_BEST_KEY = "hyperhop_v3_personal_best";
+
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
@@ -490,7 +536,6 @@
     const menuBtn = document.getElementById("menuBtn");
     const openHallAfterGameBtn = document.getElementById("openHallAfterGameBtn");
     const closeHallBtn = document.getElementById("closeHallBtn");
-    const clearHallBtn = document.getElementById("clearHallBtn");
     const hallBtn = document.getElementById("hallBtn");
     const musicBtn = document.getElementById("musicBtn");
     const sfxBtn = document.getElementById("sfxBtn");
@@ -500,12 +545,14 @@
     const leaderboardList = document.getElementById("leaderboardList");
     const gameOverActions = document.getElementById("gameOverActions");
 
+    const playingNowValue = document.getElementById("playingNowValue");
+    const totalPlayersValue = document.getElementById("totalPlayersValue");
+    const totalRunsValue = document.getElementById("totalRunsValue");
+
     const W = canvas.width;
     const H = canvas.height;
     const GROUND_Y = H - 120;
     const CEILING_H = 74;
-    const STORAGE_KEY = "hyperhop_v3_wall_of_fame";
-    const PERSONAL_BEST_KEY = "hyperhop_v3_personal_best";
 
     const state = {
       phase: "menu", // menu, playing, countdown, awaiting_save
@@ -528,6 +575,14 @@
     const settings = {
       musicOn: true,
       sfxOn: true
+    };
+
+    const analytics = {
+      playerId: getOrCreateLocalId(PLAYER_ID_KEY, "hhp"),
+      browserSessionId: getOrCreateLocalId(BROWSER_SESSION_KEY, "sess"),
+      currentRunId: null,
+      presenceIntervalId: null,
+      metricsIntervalId: null
     };
 
     const player = {
@@ -577,6 +632,163 @@
       musicNodes: [],
       initialized: false
     };
+
+    function getOrCreateLocalId(key, prefix) {
+      let value = localStorage.getItem(key);
+      if (!value) {
+        value = `${prefix}_${crypto.randomUUID()}`;
+        localStorage.setItem(key, value);
+      }
+      return value;
+    }
+
+    async function upsertPresence() {
+      if (!supabase) return;
+      await supabase.from("player_presence").upsert({
+        player_id: analytics.playerId,
+        first_seen_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+        last_session_id: analytics.browserSessionId
+      }, { onConflict: "player_id" });
+    }
+
+    async function fetchMetrics() {
+      if (!supabase) {
+        playingNowValue.textContent = "—";
+        totalPlayersValue.textContent = "—";
+        totalRunsValue.textContent = "—";
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("public_metrics")
+        .select("playing_now,total_players_seen,total_completed_runs")
+        .single();
+
+      if (error || !data) return;
+
+      playingNowValue.textContent = String(data.playing_now ?? 0);
+      totalPlayersValue.textContent = String(data.total_players_seen ?? 0);
+      totalRunsValue.textContent = String(data.total_completed_runs ?? 0);
+    }
+
+    async function fetchGlobalLeaderboard() {
+      if (!supabase) {
+        leaderboardList.innerHTML = '<p class="leaderboard-title">Supabase er ikke konfigurert ennå</p>';
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("player_name,score,coins")
+        .order("score", { ascending: false })
+        .order("coins", { ascending: false })
+        .limit(10);
+
+      if (error) {
+        leaderboardList.innerHTML = '<p class="leaderboard-title">Klarte ikke hente topplisten</p>';
+        return;
+      }
+
+      if (!data || !data.length) {
+        leaderboardList.innerHTML = '<p class="leaderboard-title">Ingen globale scores ennå</p>';
+        return;
+      }
+
+      leaderboardList.innerHTML =
+        '<p class="leaderboard-title">Global legends</p>' +
+        data.map((entry, i) => `
+          <div class="lb-row">
+            <div class="lb-rank">#${i + 1}</div>
+            <div class="lb-name">${escapeHtml(entry.player_name)}</div>
+            <div class="lb-score">${entry.score}</div>
+            <div class="lb-coins">${entry.coins}¢</div>
+          </div>
+        `).join("");
+    }
+
+    async function startRunTracking() {
+      if (!supabase) return;
+
+      const { data, error } = await supabase
+        .from("game_runs")
+        .insert({
+          player_id: analytics.playerId,
+          browser_session_id: analytics.browserSessionId,
+          started_at: new Date().toISOString()
+        })
+        .select("id")
+        .single();
+
+      if (!error && data?.id) {
+        analytics.currentRunId = data.id;
+      }
+    }
+
+    async function finishRunTracking(score, runCoins, isPersonalBest) {
+      if (!supabase || !analytics.currentRunId) return;
+
+      await supabase
+        .from("game_runs")
+        .update({
+          ended_at: new Date().toISOString(),
+          score,
+          coins: runCoins,
+          is_personal_best: !!isPersonalBest
+        })
+        .eq("id", analytics.currentRunId);
+
+      analytics.currentRunId = null;
+    }
+
+    async function submitGlobalHighscore(playerName, score, runCoins) {
+      if (!supabase) return;
+
+      const cleanName = (playerName || "ANON").trim().slice(0, 14).toUpperCase() || "ANON";
+
+      const { data: existing } = await supabase
+        .from("leaderboard")
+        .select("score,coins")
+        .eq("player_id", analytics.playerId)
+        .maybeSingle();
+
+      const shouldWrite =
+        !existing ||
+        score > existing.score ||
+        (score === existing.score && runCoins > existing.coins);
+
+      if (!shouldWrite) return;
+
+      await supabase
+        .from("leaderboard")
+        .upsert({
+          player_id: analytics.playerId,
+          player_name: cleanName,
+          score,
+          coins: runCoins,
+          updated_at: new Date().toISOString()
+        }, { onConflict: "player_id" });
+    }
+
+    function startAnalyticsLoops() {
+      if (!supabase) return;
+
+      upsertPresence();
+      fetchMetrics();
+
+      clearInterval(analytics.presenceIntervalId);
+      clearInterval(analytics.metricsIntervalId);
+
+      analytics.presenceIntervalId = setInterval(upsertPresence, 20000);
+      analytics.metricsIntervalId = setInterval(fetchMetrics, 30000);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        upsertPresence();
+        fetchMetrics();
+      }
+    });
 
     function ensureAudio() {
       if (audio.initialized) return;
@@ -697,56 +909,6 @@
       playUiSound();
     }
 
-    function getLeaderboard() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
-
-    function saveLeaderboard(entries) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 10)));
-    }
-
-    function addLeaderboardEntry(name, score, runCoins) {
-      const clean = (name || "ANON").trim().slice(0, 14).toUpperCase() || "ANON";
-      const entries = getLeaderboard();
-
-      entries.push({
-        name: clean,
-        score,
-        coins: runCoins,
-        date: new Date().toISOString()
-      });
-
-      entries.sort((a, b) => b.score - a.score || b.coins - a.coins);
-      saveLeaderboard(entries);
-      renderLeaderboard();
-    }
-
-    function renderLeaderboard() {
-      const entries = getLeaderboard();
-
-      if (!entries.length) {
-        leaderboardList.innerHTML = '<p class="leaderboard-title">Ingen scores ennå</p>';
-        return;
-      }
-
-      leaderboardList.innerHTML =
-        '<p class="leaderboard-title">All-time legends</p>' +
-        entries.map((entry, i) => `
-          <div class="lb-row">
-            <div class="lb-rank">#${i + 1}</div>
-            <div class="lb-name">${escapeHtml(entry.name)}</div>
-            <div class="lb-score">${entry.score}</div>
-            <div class="lb-coins">${entry.coins}¢</div>
-          </div>
-        `).join("");
-    }
-
     function escapeHtml(str) {
       return String(str)
         .replaceAll("&", "&amp;")
@@ -756,8 +918,8 @@
         .replaceAll("'", "&#039;");
     }
 
-    function openHall() {
-      renderLeaderboard();
+    async function openHall() {
+      await Promise.all([fetchMetrics(), fetchGlobalLeaderboard()]);
       hallOverlay.classList.remove("hidden");
       playUiSound();
     }
@@ -819,12 +981,16 @@
 
       messageBox.textContent = "Trykk for å hoppe. Flymodus kommer via power-up.";
       playUiSound();
+
+      upsertPresence();
+      startRunTracking();
     }
 
     function backToMenu() {
       state.phase = "menu";
       state.pendingHallEntry = null;
       state.pointerActive = false;
+      analytics.currentRunId = null;
 
       playerNameInput.value = "";
       nameFormWrap.classList.add("hidden");
@@ -1016,14 +1182,18 @@
       playPowerUpSound();
     }
 
-    function killPlayer() {
+    async function killPlayer() {
       if (state.phase !== "playing") return;
 
       const finalScore = Math.floor(state.score);
       state.bestScore = Math.max(state.bestScore, finalScore);
       playHitSound();
 
-      if (finalScore > state.personalBest) {
+      const isPersonalBest = finalScore > state.personalBest;
+      await finishRunTracking(finalScore, state.coins, isPersonalBest);
+      fetchMetrics();
+
+      if (isPersonalBest) {
         state.personalBest = finalScore;
         localStorage.setItem(PERSONAL_BEST_KEY, String(finalScore));
         state.pendingHallEntry = { score: finalScore, coins: state.coins };
@@ -1034,10 +1204,10 @@
       }
     }
 
-    function savePendingScore() {
+    async function savePendingScore() {
       if (!state.pendingHallEntry) return;
 
-      addLeaderboardEntry(
+      await submitGlobalHighscore(
         playerNameInput.value,
         state.pendingHallEntry.score,
         state.pendingHallEntry.coins
@@ -1046,6 +1216,10 @@
       state.pendingHallEntry = null;
       nameFormWrap.classList.add("hidden");
       gameOverActions.classList.add("hidden");
+
+      fetchMetrics();
+      fetchGlobalLeaderboard();
+
       startCountdown();
       playUiSound();
     }
@@ -1183,7 +1357,10 @@
           continue;
         }
 
-        if (rectsIntersect(playerRect, o)) killPlayer();
+        if (rectsIntersect(playerRect, o)) {
+          killPlayer();
+          return;
+        }
       }
 
       for (let i = coins.length - 1; i >= 0; i--) {
@@ -1603,12 +1780,6 @@
     bindPress(sfxBtn, toggleSfx);
     bindPress(saveScoreBtn, savePendingScore);
 
-    bindPress(clearHallBtn, () => {
-      localStorage.removeItem(STORAGE_KEY);
-      renderLeaderboard();
-      playUiSound();
-    });
-
     playerNameInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -1616,7 +1787,7 @@
       }
     });
 
-    renderLeaderboard();
+    startAnalyticsLoops();
     updateHud();
     draw();
     requestAnimationFrame(loop);
