@@ -2,7 +2,10 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
   <title>HyperHop Testversjon V3</title>
   <style>
     :root {
@@ -18,9 +21,13 @@
       --gold: #fbbf24;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       height: 100%;
       overflow: hidden;
@@ -28,25 +35,38 @@
       color: var(--text);
       font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       touch-action: none;
+      overscroll-behavior: none;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
     }
 
     .app {
       height: 100%;
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 12px;
+      padding: max(8px, env(safe-area-inset-top))
+               max(8px, env(safe-area-inset-right))
+               max(8px, env(safe-area-inset-bottom))
+               max(8px, env(safe-area-inset-left));
     }
 
     .shell {
       position: relative;
-      width: min(100vw, 440px);
-      height: min(100vh, 860px);
+      width: min(100vw - 16px, 440px);
+      height: min(100vh - 16px, 860px);
       border-radius: 24px;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.45);
       border: 1px solid rgba(255,255,255,0.08);
       background: #0b1220;
+      isolation: isolate;
     }
 
     canvas {
@@ -54,11 +74,13 @@
       width: 100%;
       height: 100%;
       background: linear-gradient(180deg, #0f172a 0%, #132238 50%, #1b2c46 100%);
+      touch-action: none;
     }
 
     .hud {
       position: absolute;
       inset: 0;
+      z-index: 5;
       pointer-events: none;
       display: flex;
       flex-direction: column;
@@ -69,7 +91,7 @@
     .topbar {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
 
     .chip {
@@ -78,7 +100,8 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px;
       padding: 10px 12px;
-      min-width: 96px;
+      min-width: 0;
+      flex: 1;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
     }
 
@@ -93,6 +116,9 @@
       margin-top: 2px;
       font-weight: 700;
       font-size: 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .bottom-panel {
@@ -111,14 +137,14 @@
       text-align: center;
       font-size: 14px;
       color: var(--text);
-      max-width: 92%;
+      max-width: 100%;
     }
 
     .small-fab {
       pointer-events: auto;
       border: 0;
       border-radius: 14px;
-      padding: 10px 12px;
+      padding: 12px 14px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
@@ -126,11 +152,15 @@
       color: var(--text);
       border: 1px solid rgba(255,255,255,0.08);
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .overlay {
       position: absolute;
       inset: 0;
+      z-index: 20;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -141,12 +171,16 @@
 
     .card {
       width: min(100%, 360px);
-      background: rgba(15, 23, 42, 0.88);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      background: rgba(15, 23, 42, 0.92);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 22px;
       padding: 22px;
       box-shadow: 0 18px 40px rgba(0,0,0,0.35);
       text-align: center;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
 
     .title {
@@ -173,7 +207,9 @@
       padding: 12px;
     }
 
-    .controls b { color: white; }
+    .controls b {
+      color: white;
+    }
 
     .actions {
       display: flex;
@@ -187,15 +223,24 @@
       pointer-events: auto;
       border: 0;
       border-radius: 14px;
-      padding: 12px 18px;
+      padding: 14px 18px;
       font-weight: 700;
       font-size: 15px;
       cursor: pointer;
       transition: transform 0.12s ease, opacity 0.12s ease;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      min-height: 48px;
     }
 
-    button:hover { transform: translateY(-1px); }
-    button:active { transform: translateY(1px); }
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
 
     .primary {
       background: var(--accent);
@@ -208,7 +253,9 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .hidden { display: none; }
+    .hidden {
+      display: none !important;
+    }
 
     .leaderboard {
       margin-top: 16px;
@@ -254,7 +301,8 @@
       white-space: nowrap;
     }
 
-    .lb-score, .lb-coins {
+    .lb-score,
+    .lb-coins {
       text-align: right;
       color: #e5e7eb;
       font-variant-numeric: tabular-nums;
@@ -277,16 +325,63 @@
       width: 100%;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px;
-      padding: 12px 14px;
+      padding: 14px 14px;
       background: rgba(255,255,255,0.05);
       color: white;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
     }
 
     .name-form input:focus {
       border-color: rgba(56,189,248,0.8);
       box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
+    }
+
+    @media (max-width: 420px) {
+      .shell {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        border: 0;
+      }
+
+      .app {
+        padding: 0;
+      }
+
+      .hud {
+        padding: 10px;
+      }
+
+      .topbar {
+        gap: 6px;
+      }
+
+      .chip {
+        padding: 9px 10px;
+      }
+
+      .chip .value {
+        font-size: 18px;
+      }
+
+      .message {
+        font-size: 13px;
+      }
+
+      .small-fab {
+        padding: 10px 12px;
+        font-size: 12px;
+      }
+
+      .card {
+        width: min(100%, 340px);
+        padding: 18px;
+      }
+
+      .title {
+        font-size: 24px;
+      }
     }
   </style>
 </head>
@@ -312,9 +407,9 @@
         </div>
 
         <div class="bottom-panel">
-          <button class="small-fab" id="musicBtn" aria-label="Toggle music">Musikk: På</button>
-          <button class="small-fab" id="sfxBtn" aria-label="Toggle sound effects">Lyder: På</button>
-          <button class="small-fab" id="hallBtn" aria-label="Open wall of fame">Wall of Fame</button>
+          <button class="small-fab" id="musicBtn" type="button" aria-label="Toggle music">Musikk: På</button>
+          <button class="small-fab" id="sfxBtn" type="button" aria-label="Toggle sound effects">Lyder: På</button>
+          <button class="small-fab" id="hallBtn" type="button" aria-label="Open wall of fame">Wall of Fame</button>
           <div class="message" id="messageBox">Trykk for å hoppe. Dobbelttrykk i lufta gir dobbelhopp.</div>
         </div>
       </div>
@@ -322,14 +417,18 @@
       <div class="overlay" id="startOverlay">
         <div class="card">
           <h1 class="title">HyperHop v3</h1>
-          <p class="subtitle">Auto-restart med countdown ved vanlig død. High score lagres kun når du slår din personlige rekord.</p>
+          <p class="subtitle">
+            Demo bygget for telefon. Vanlig død gir auto-restart med countdown. Ny personlig rekord gir lagre-skjerm først.
+          </p>
+
           <div class="controls">
-            <div><b>Mobil:</b> trykk for hopp. Når flymodus er aktiv, dra fingeren opp og ned.</div>
-            <div><b>PC:</b> mellomrom eller museklikk for hopp. I flymodus bruker du mus opp/ned eller pil opp/ned.</div>
+            <div><b>Mobil:</b> trykk hvor som helst i spillet for hopp. I flymodus holder du fingeren nede og drar opp eller ned.</div>
+            <div><b>PC:</b> mellomrom, pil opp eller museklikk for hopp. I flymodus bruker du mus eller piltaster.</div>
           </div>
+
           <div class="actions">
-            <button class="primary" id="startBtn">Start test</button>
-            <button class="secondary" id="openHallFromMenuBtn">Se Wall of Fame</button>
+            <button class="primary" id="startBtn" type="button">Start test</button>
+            <button class="secondary" id="openHallFromMenuBtn" type="button">Se Wall of Fame</button>
           </div>
         </div>
       </div>
@@ -341,15 +440,15 @@
 
           <div class="name-form hidden" id="nameFormWrap">
             <label for="playerNameInput">Ny personlig rekord. Skriv inn navn til Wall of Fame.</label>
-            <input id="playerNameInput" maxlength="14" placeholder="F.eks. STARK" />
+            <input id="playerNameInput" maxlength="14" placeholder="F.eks. STARK" autocomplete="off" />
             <div class="actions" style="margin-top: 8px; justify-content: flex-start;">
-              <button class="primary" id="saveScoreBtn">Lagre score</button>
+              <button class="primary" id="saveScoreBtn" type="button">Lagre score</button>
             </div>
           </div>
 
           <div class="actions hidden" id="gameOverActions">
-            <button class="secondary" id="openHallAfterGameBtn">Wall of Fame</button>
-            <button class="secondary" id="menuBtn">Til meny</button>
+            <button class="secondary" id="openHallAfterGameBtn" type="button">Wall of Fame</button>
+            <button class="secondary" id="menuBtn" type="button">Til meny</button>
           </div>
         </div>
       </div>
@@ -357,15 +456,15 @@
       <div class="overlay hidden" id="hallOverlay">
         <div class="card">
           <h2 class="title">Wall of Fame</h2>
-          <p class="subtitle">Lokale legender på denne enheten. Nakne tall og ren stolthet.</p>
+          <p class="subtitle">Lokale legender på denne enheten. Nakne tall, null diplomati.</p>
 
           <div class="leaderboard" id="leaderboardList">
             <p class="leaderboard-title">Ingen scores ennå</p>
           </div>
 
           <div class="actions">
-            <button class="secondary" id="clearHallBtn">Tøm liste</button>
-            <button class="primary" id="closeHallBtn">Lukk</button>
+            <button class="secondary" id="clearHallBtn" type="button">Tøm liste</button>
+            <button class="primary" id="closeHallBtn" type="button">Lukk</button>
           </div>
         </div>
       </div>
@@ -423,13 +522,12 @@
       modeMessageUntil: 0,
       countdown: 0,
       countdownAccumulator: 0,
-      pendingHallEntry: null,
-      hallWasOpenedFromDeath: false,
+      pendingHallEntry: null
     };
 
     const settings = {
       musicOn: true,
-      sfxOn: true,
+      sfxOn: true
     };
 
     const player = {
@@ -446,7 +544,7 @@
       isFlying: false,
       flyTimer: 0,
       flySpeed: 520,
-      flashTimer: 0,
+      flashTimer: 0
     };
 
     const obstacles = [];
@@ -463,13 +561,13 @@
       SPEED_UP: "speed_up",
       SLOW_DOWN: "slow_down",
       MAGNET: "magnet",
-      FLY: "fly",
+      FLY: "fly"
     };
 
     const effects = {
       speedUp: 0,
       slowDown: 0,
-      magnet: 0,
+      magnet: 0
     };
 
     const audio = {
@@ -477,32 +575,40 @@
       musicGain: null,
       sfxGain: null,
       musicNodes: [],
-      initialized: false,
+      initialized: false
     };
 
     function ensureAudio() {
       if (audio.initialized) return;
+
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextCtor) return;
+
       audio.ctx = new AudioContextCtor();
       audio.musicGain = audio.ctx.createGain();
       audio.sfxGain = audio.ctx.createGain();
+
       audio.musicGain.gain.value = settings.musicOn ? 0.055 : 0;
       audio.sfxGain.gain.value = settings.sfxOn ? 0.18 : 0;
+
       audio.musicGain.connect(audio.ctx.destination);
       audio.sfxGain.connect(audio.ctx.destination);
       audio.initialized = true;
+
       startMusicLoop();
     }
 
     function startMusicLoop() {
       if (!audio.ctx || audio.musicNodes.length) return;
+
       const now = audio.ctx.currentTime + 0.08;
       const beat = 0.36;
       const sequence = [220, 277.18, 329.63, 277.18, 246.94, 293.66, 369.99, 293.66];
       const bass = [110, 110, 123.47, 98, 110, 110, 82.41, 98];
+
       sequence.forEach((freq, i) => scheduleMusicTone(now + i * beat, beat * 0.9, freq, "triangle", 0.06));
       bass.forEach((freq, i) => scheduleMusicTone(now + i * beat, beat * 0.72, freq, "sine", 0.045));
+
       setTimeout(() => {
         audio.musicNodes = [];
         if (audio.initialized) startMusicLoop();
@@ -512,13 +618,17 @@
     function scheduleMusicTone(start, dur, freq, type, vol) {
       const osc = audio.ctx.createOscillator();
       const gain = audio.ctx.createGain();
+
       osc.type = type;
       osc.frequency.setValueAtTime(freq, start);
+
       gain.gain.setValueAtTime(0.0001, start);
       gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
       osc.connect(gain);
       gain.connect(audio.musicGain);
+
       osc.start(start);
       osc.stop(start + dur + 0.03);
       audio.musicNodes.push(osc);
@@ -526,27 +636,50 @@
 
     function sfxTone(freq, duration, type = "square", volume = 0.06, slide = 0) {
       if (!audio.ctx || !settings.sfxOn) return;
+
       const now = audio.ctx.currentTime;
       const osc = audio.ctx.createOscillator();
       const gain = audio.ctx.createGain();
+
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
       if (slide !== 0) osc.frequency.linearRampToValueAtTime(freq + slide, now + duration);
+
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
       osc.connect(gain);
       gain.connect(audio.sfxGain);
+
       osc.start(now);
       osc.stop(now + duration + 0.02);
     }
 
-    function playJumpSound(doubleJump = false) { sfxTone(doubleJump ? 640 : 420, 0.12, "square", 0.05, doubleJump ? 120 : 80); }
-    function playCoinSound() { sfxTone(880, 0.07, "triangle", 0.05, 180); }
-    function playPowerUpSound() { sfxTone(520, 0.08, "sawtooth", 0.04, 120); setTimeout(() => sfxTone(760, 0.09, "triangle", 0.04, 140), 55); }
-    function playHitSound() { sfxTone(220, 0.2, "sawtooth", 0.07, -120); }
-    function playUiSound() { sfxTone(520, 0.05, "triangle", 0.03, 40); }
-    function playCountdownBeep(n) { sfxTone(n === 1 ? 900 : 700, 0.08, "square", 0.04, 20); }
+    function playJumpSound(doubleJump = false) {
+      sfxTone(doubleJump ? 640 : 420, 0.12, "square", 0.05, doubleJump ? 120 : 80);
+    }
+
+    function playCoinSound() {
+      sfxTone(880, 0.07, "triangle", 0.05, 180);
+    }
+
+    function playPowerUpSound() {
+      sfxTone(520, 0.08, "sawtooth", 0.04, 120);
+      setTimeout(() => sfxTone(760, 0.09, "triangle", 0.04, 140), 55);
+    }
+
+    function playHitSound() {
+      sfxTone(220, 0.2, "sawtooth", 0.07, -120);
+    }
+
+    function playUiSound() {
+      sfxTone(520, 0.05, "triangle", 0.03, 40);
+    }
+
+    function playCountdownBeep(n) {
+      sfxTone(n === 1 ? 900 : 700, 0.08, "square", 0.04, 20);
+    }
 
     function toggleMusic() {
       ensureAudio();
@@ -581,7 +714,14 @@
     function addLeaderboardEntry(name, score, runCoins) {
       const clean = (name || "ANON").trim().slice(0, 14).toUpperCase() || "ANON";
       const entries = getLeaderboard();
-      entries.push({ name: clean, score, coins: runCoins, date: new Date().toISOString() });
+
+      entries.push({
+        name: clean,
+        score,
+        coins: runCoins,
+        date: new Date().toISOString()
+      });
+
       entries.sort((a, b) => b.score - a.score || b.coins - a.coins);
       saveLeaderboard(entries);
       renderLeaderboard();
@@ -589,18 +729,22 @@
 
     function renderLeaderboard() {
       const entries = getLeaderboard();
+
       if (!entries.length) {
         leaderboardList.innerHTML = '<p class="leaderboard-title">Ingen scores ennå</p>';
         return;
       }
-      leaderboardList.innerHTML = '<p class="leaderboard-title">All-time legends</p>' + entries.map((entry, i) => `
-        <div class="lb-row">
-          <div class="lb-rank">#${i + 1}</div>
-          <div class="lb-name">${escapeHtml(entry.name)}</div>
-          <div class="lb-score">${entry.score}</div>
-          <div class="lb-coins">${entry.coins}¢</div>
-        </div>
-      `).join("");
+
+      leaderboardList.innerHTML =
+        '<p class="leaderboard-title">All-time legends</p>' +
+        entries.map((entry, i) => `
+          <div class="lb-row">
+            <div class="lb-rank">#${i + 1}</div>
+            <div class="lb-name">${escapeHtml(entry.name)}</div>
+            <div class="lb-score">${entry.score}</div>
+            <div class="lb-coins">${entry.coins}¢</div>
+          </div>
+        `).join("");
     }
 
     function escapeHtml(str) {
@@ -612,10 +756,9 @@
         .replaceAll("'", "&#039;");
     }
 
-    function openHall(fromDeath = false) {
+    function openHall() {
       renderLeaderboard();
       hallOverlay.classList.remove("hidden");
-      state.hallWasOpenedFromDeath = fromDeath;
       playUiSound();
     }
 
@@ -681,6 +824,7 @@
     function backToMenu() {
       state.phase = "menu";
       state.pendingHallEntry = null;
+      state.pointerActive = false;
 
       playerNameInput.value = "";
       nameFormWrap.classList.add("hidden");
@@ -699,6 +843,7 @@
       state.phase = "countdown";
       state.countdown = 3;
       state.countdownAccumulator = 0;
+      state.pointerActive = false;
 
       countdownTitle.textContent = "3";
       gameOverText.textContent = "Du døde. Ny runde starter straks.";
@@ -711,13 +856,21 @@
 
     function showHighscoreSaveScreen(finalScore) {
       state.phase = "awaiting_save";
+      state.pointerActive = false;
+
       countdownTitle.textContent = "High Score!";
       gameOverText.textContent = `Ny personlig rekord! Score: ${finalScore} · Coins: ${state.coins}`;
       nameFormWrap.classList.remove("hidden");
       gameOverActions.classList.remove("hidden");
       gameOverOverlay.classList.remove("hidden");
 
-      setTimeout(() => playerNameInput.focus(), 30);
+      setTimeout(() => {
+        try {
+          playerNameInput.focus({ preventScroll: true });
+        } catch {
+          playerNameInput.focus();
+        }
+      }, 50);
     }
 
     function updateHud() {
@@ -764,10 +917,24 @@
 
       if (t < 0.6) {
         const h = 56 + Math.random() * 50;
-        obstacles.push({ x: W + 20, y: GROUND_Y - h, w: 40 + Math.random() * 24, h, color: "#f97316", top: false });
+        obstacles.push({
+          x: W + 20,
+          y: GROUND_Y - h,
+          w: 40 + Math.random() * 24,
+          h,
+          color: "#f97316",
+          top: false
+        });
       } else {
         const h = 36 + Math.random() * 24;
-        obstacles.push({ x: W + 20, y: GROUND_Y - h, w: 78, h, color: "#fb7185", top: false });
+        obstacles.push({
+          x: W + 20,
+          y: GROUND_Y - h,
+          w: 78,
+          h,
+          color: "#fb7185",
+          top: false
+        });
       }
     }
 
@@ -778,7 +945,11 @@
       if (player.isFlying) {
         const centerY = 180 + Math.random() * (GROUND_Y - 280);
         for (let i = 0; i < count; i++) {
-          coins.push({ x: W + 30 + i * spacing, y: centerY + Math.sin(i * 0.65) * 26, r: 11 });
+          coins.push({
+            x: W + 30 + i * spacing,
+            y: centerY + Math.sin(i * 0.65) * 26,
+            r: 11
+          });
         }
         return;
       }
@@ -788,7 +959,12 @@
         let y = GROUND_Y - 34;
         if (heightMode > 0.45 && heightMode < 0.8) y -= 95;
         if (heightMode >= 0.8) y -= 170;
-        coins.push({ x: W + 30 + i * spacing, y, r: 11 });
+
+        coins.push({
+          x: W + 30 + i * spacing,
+          y,
+          r: 11
+        });
       }
     }
 
@@ -816,15 +992,18 @@
           effects.slowDown = 0;
           flashMessage("Power-up: Fart opp");
           break;
+
         case PowerType.SLOW_DOWN:
           effects.slowDown = 5;
           effects.speedUp = 0;
           flashMessage("Power-up: Fart ned");
           break;
+
         case PowerType.MAGNET:
           effects.magnet = 6;
           flashMessage("Power-up: Coin magnet");
           break;
+
         case PowerType.FLY:
           player.isFlying = true;
           player.flyTimer = 8;
@@ -833,6 +1012,7 @@
           flashMessage("Power-up: Flymodus");
           break;
       }
+
       playPowerUpSound();
     }
 
@@ -866,15 +1046,17 @@
       state.pendingHallEntry = null;
       nameFormWrap.classList.add("hidden");
       gameOverActions.classList.add("hidden");
-      gameOverText.textContent = "Score lagret. Ny runde starter straks.";
-      countdownTitle.textContent = "3";
-
       startCountdown();
       playUiSound();
     }
 
     function rectsIntersect(a, b) {
-      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      return (
+        a.x < b.x + b.w &&
+        a.x + a.w > b.x &&
+        a.y < b.y + b.h &&
+        a.y + a.h > b.y
+      );
     }
 
     function circleRectIntersect(c, r) {
@@ -907,7 +1089,7 @@
 
       if (state.modeMessageUntil && state.time > state.modeMessageUntil) {
         messageBox.textContent = player.isFlying
-          ? "Flymodus aktiv: dra opp og ned."
+          ? "Flymodus aktiv: hold inne og dra opp eller ned."
           : "Trykk for hopp. Unngå hindrene og samle coins.";
         state.modeMessageUntil = 0;
       }
@@ -985,15 +1167,22 @@
         powerSpawnTimer = 8 + Math.random() * 7;
       }
 
-      const playerRect = { x: player.x + 4, y: player.y + 4, w: player.w - 8, h: player.h - 6 };
+      const playerRect = {
+        x: player.x + 4,
+        y: player.y + 4,
+        w: player.w - 8,
+        h: player.h - 6
+      };
 
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const o = obstacles[i];
         o.x -= state.worldSpeed * dt;
+
         if (o.x + o.w < -20) {
           obstacles.splice(i, 1);
           continue;
         }
+
         if (rectsIntersect(playerRect, o)) killPlayer();
       }
 
@@ -1002,9 +1191,10 @@
         c.x -= state.worldSpeed * dt;
 
         if (effects.magnet > 0) {
-          const dx = (player.x + player.w / 2) - c.x;
-          const dy = (player.y + player.h / 2) - c.y;
+          const dx = player.x + player.w / 2 - c.x;
+          const dy = player.y + player.h / 2 - c.y;
           const dist = Math.hypot(dx, dy);
+
           if (dist < 180) {
             c.x += (dx / Math.max(1, dist)) * 420 * dt;
             c.y += (dy / Math.max(1, dist)) * 420 * dt;
@@ -1074,6 +1264,7 @@
         } else {
           countdownTitle.textContent = "GO";
           playUiSound();
+
           setTimeout(() => {
             if (state.phase === "countdown" && hallOverlay.classList.contains("hidden")) {
               startNewRun();
@@ -1156,8 +1347,10 @@
         ctx.strokeStyle = "rgba(125,211,252,0.9)";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(x - 10, y + player.h * 0.4); ctx.lineTo(x - 22, y + player.h * 0.25);
-        ctx.moveTo(x - 10, y + player.h * 0.6); ctx.lineTo(x - 22, y + player.h * 0.75);
+        ctx.moveTo(x - 10, y + player.h * 0.4);
+        ctx.lineTo(x - 22, y + player.h * 0.25);
+        ctx.moveTo(x - 10, y + player.h * 0.6);
+        ctx.lineTo(x - 22, y + player.h * 0.75);
         ctx.stroke();
       }
 
@@ -1248,7 +1441,7 @@
           [PowerType.SPEED_UP]: ["#ef4444", "#fb7185"],
           [PowerType.SLOW_DOWN]: ["#22c55e", "#4ade80"],
           [PowerType.MAGNET]: ["#a855f7", "#d946ef"],
-          [PowerType.FLY]: ["#38bdf8", "#60a5fa"],
+          [PowerType.FLY]: ["#38bdf8", "#60a5fa"]
         };
 
         const [c1, c2] = colors[p.type] || ["#ffffff", "#dddddd"];
@@ -1308,12 +1501,16 @@
       if (!lastTimestamp) lastTimestamp = timestamp;
       const dt = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
       lastTimestamp = timestamp;
+
       update(dt);
       draw();
       requestAnimationFrame(loop);
     }
 
-    const keys = { ArrowUp: false, ArrowDown: false };
+    const keys = {
+      ArrowUp: false,
+      ArrowDown: false
+    };
 
     window.addEventListener("keydown", (e) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
@@ -1340,60 +1537,84 @@
       if (e.code === "ArrowDown") keys.ArrowDown = false;
     });
 
-    function setPointer(e) {
+    function setPointerPosition(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      state.pointerY = ((clientY - rect.top) / rect.height) * H;
+      const y = ((clientY - rect.top) / rect.height) * H;
+      state.pointerY = y;
     }
 
-    function pointerDown(e) {
+    function isPrimaryGamePointer(e) {
+      return e.isPrimary !== false;
+    }
+
+    function pointerDownOnCanvas(e) {
+      if (!isPrimaryGamePointer(e)) return;
+      if (state.phase !== "playing") return;
+      if (!hallOverlay.classList.contains("hidden")) return;
+      if (!gameOverOverlay.classList.contains("hidden")) return;
+
       ensureAudio();
       if (audio.ctx?.state === "suspended") audio.ctx.resume();
 
-      if (state.phase !== "playing" || !hallOverlay.classList.contains("hidden")) return;
-
       state.pointerActive = true;
-      setPointer(e);
+      setPointerPosition(e.clientX, e.clientY);
 
       if (!player.isFlying) jump();
+
       e.preventDefault();
     }
 
-    function pointerMove(e) {
+    function pointerMoveOnCanvas(e) {
+      if (!isPrimaryGamePointer(e)) return;
       if (state.phase !== "playing") return;
       if (!state.pointerActive) return;
-      setPointer(e);
+
+      setPointerPosition(e.clientX, e.clientY);
       e.preventDefault();
     }
 
-    function pointerUp(e) {
+    function pointerUpAnywhere(e) {
       state.pointerActive = false;
       if (e) e.preventDefault();
     }
 
-    canvas.addEventListener("mousedown", pointerDown);
-    canvas.addEventListener("mousemove", pointerMove);
-    window.addEventListener("mouseup", pointerUp);
-    canvas.addEventListener("touchstart", pointerDown, { passive: false });
-    canvas.addEventListener("touchmove", pointerMove, { passive: false });
-    window.addEventListener("touchend", pointerUp, { passive: false });
+    canvas.addEventListener("pointerdown", pointerDownOnCanvas, { passive: false });
+    canvas.addEventListener("pointermove", pointerMoveOnCanvas, { passive: false });
+    window.addEventListener("pointerup", pointerUpAnywhere, { passive: false });
+    window.addEventListener("pointercancel", pointerUpAnywhere, { passive: false });
 
-    startBtn.addEventListener("click", startNewRun);
-    menuBtn.addEventListener("click", backToMenu);
-    openHallAfterGameBtn.addEventListener("click", () => openHall(true));
-    openHallFromMenuBtn.addEventListener("click", () => openHall(false));
-    hallBtn.addEventListener("click", () => openHall(false));
-    closeHallBtn.addEventListener("click", closeHall);
+    function bindPress(el, handler) {
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ensureAudio();
+        if (audio.ctx?.state === "suspended") audio.ctx.resume();
+        handler(e);
+      }, { passive: false });
+    }
 
-    clearHallBtn.addEventListener("click", () => {
+    bindPress(startBtn, startNewRun);
+    bindPress(menuBtn, backToMenu);
+    bindPress(openHallAfterGameBtn, openHall);
+    bindPress(openHallFromMenuBtn, openHall);
+    bindPress(hallBtn, openHall);
+    bindPress(closeHallBtn, closeHall);
+    bindPress(musicBtn, toggleMusic);
+    bindPress(sfxBtn, toggleSfx);
+    bindPress(saveScoreBtn, savePendingScore);
+
+    bindPress(clearHallBtn, () => {
       localStorage.removeItem(STORAGE_KEY);
       renderLeaderboard();
       playUiSound();
     });
 
-    musicBtn.addEventListener("click", toggleMusic);
-    sfxBtn.addEventListener("click", toggleSfx);
-    saveScoreBtn.addEventListener("click", savePendingScore);
+    playerNameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        savePendingScore();
+      }
+    });
 
     renderLeaderboard();
     updateHud();
