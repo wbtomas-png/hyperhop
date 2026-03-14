@@ -359,6 +359,24 @@
       box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
     }
 
+	    .copyright-badge {
+      position: absolute;
+      top: calc(10px + env(safe-area-inset-top));
+      left: calc(12px + env(safe-area-inset-left));
+      z-index: 12;
+      pointer-events: none;
+      font-size: 11px;
+      line-height: 1.35;
+      color: rgba(226, 232, 240, 0.68);
+      background: rgba(15, 23, 42, 0.42);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 6px 8px;
+      max-width: 180px;
+      backdrop-filter: blur(6px);
+      font-weight: 500;
+    }
+
     @media (max-width: 420px) {
       .shell {
         width: 100vw;
@@ -410,6 +428,10 @@
 <body>
   <div class="app">
     <div class="shell">
+	      <div class="copyright-badge">
+        HyperHop © 2026 Tomas W.Bårdsen <br />
+        All rights reserved.
+      </div>
       <canvas id="game" width="440" height="860"></canvas>
 
       <div class="hud">
